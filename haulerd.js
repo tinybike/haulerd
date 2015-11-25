@@ -20,25 +20,31 @@ function connect(config) {
     }, function (err) {
         if (err) return console.error("net.connect:", err);
         console.log("Connected to server.");
-        if (config && config.handle && config.heartbeat) {
-            (function heartbeat(handle) {
-                db.find({handle: handle}, function (err, files) {
-                    if (err) return console.error("db.find:", err);
-                    spacebox.synchronize(files, function (err, updates) {
-                        if (err) {
-                            console.error("spacebox.synchronize:", err);
-                            return socket.end();
-                        }
-                        console.log("Heartbeat:", Object.keys(updates).length, "updates");
-                        socket.write(JSON.stringify({
-                            label: "synchronized",
-                            handle: handle,
-                            payload: updates
-                        }));
-                        setTimeout(heartbeat, 60000);
+        if (config && config.handle) {
+            socket.write(JSON.stringify({
+                label: "identify",
+                handle: config.handle
+            }));
+            if (config.heartbeat) {
+                (function heartbeat(handle) {
+                    db.find({handle: handle}, function (err, files) {
+                        if (err) return console.error("db.find:", err);
+                        spacebox.synchronize(files, function (err, updates) {
+                            if (err) {
+                                console.error("spacebox.synchronize:", err);
+                                return socket.end();
+                            }
+                            console.log("Heartbeat:", Object.keys(updates).length, "updates");
+                            socket.write(JSON.stringify({
+                                label: "synchronized",
+                                handle: handle,
+                                payload: updates
+                            }));
+                            setTimeout(heartbeat, 60000);
+                        });
                     });
-                });
-            })(config.handle);
+                })(config.handle);
+            }
         }
     });
     socket.on("error", function (err) {
