@@ -9,7 +9,7 @@ var async = require("async");
 var inputprompt = require("prompt");
 var NeDB = require("nedb");
 var spacebox = require("spacebox");
-var db = new NeDB({filename: "hauler.db", autoload: true});
+var db = new NeDB({filename: p.join(__dirname, "hauler.db"), autoload: true});
 
 function connect(config) {
     var message = "";

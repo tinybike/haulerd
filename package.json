@@ -8,10 +8,9 @@
   },
   "dependencies": {
     "async": "^1.5.0",
-    "multi-hash": "^0.1.1",
     "nedb": "^1.4.0",
     "prompt": "^0.2.14",
-    "spacebox": "^0.1.4"
+    "spacebox": "^0.1.5"
   },
   "engines": {
     "node": "^4.0"
@@ -21,9 +20,5 @@
     "url": "https://github.com/tinybike/haulerd.git"
   },
   "keywords": [],
-  "license": "MIT",
-  "devDependencies": {
-    "chai": "^3.4.0",
-    "mocha": "^2.3.3"
-  }
+  "license": "MIT"
 }
