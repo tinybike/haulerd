@@ -104,6 +104,8 @@ function connect(config) {
                         } else {
                             async.eachSeries(files, function (file, nextFile) {
                                 file.handle = parsed.handle;
+                                file.filepath = file.path;
+                                file.ipfshash = file.hash;
                                 db.update({id: file.id}, file, {upsert: true}, nextFile);
                             }, function (err) {
                                 if (err) return console.error(err);
