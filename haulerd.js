@@ -31,10 +31,8 @@ function connect(config) {
             if (config.heartbeat) {
                 (function heartbeat(handle) {
                     db.find({handle: handle}, function (err, files) {
-                        console.log("files:", files);
                         if (err) return console.error("db.find:", err);
                         spacebox.synchronize(files, function (err, updates) {
-                            console.log("updates:", updates);
                             if (err) {
                                 console.error("spacebox.synchronize:", err);
                                 return socket.end();
