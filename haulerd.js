@@ -7,9 +7,12 @@ var p = require("path");
 var net = require("net");
 var async = require("async");
 var inputprompt = require("prompt");
+var longjohn = require("longjohn");
 var NeDB = require("nedb");
 var spacebox = require("spacebox");
 var db = new NeDB({filename: p.join(__dirname, "hauler.db"), autoload: true});
+
+longjohn.async_trace_limit = 250;
 
 function connect(config) {
     var message = "";

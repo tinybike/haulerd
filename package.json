@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "async": "^1.5.0",
+    "longjohn": "^0.2.10",
     "nedb": "^1.4.0",
     "prompt": "^0.2.14",
     "spacebox": "^0.1.5"
