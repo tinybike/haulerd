@@ -6,16 +6,21 @@ var fs = require("fs");
 var p = require("path");
 var net = require("net");
 var async = require("async");
+var crypto = require("crypto");
 var inputprompt = require("prompt");
 var NeDB = require("nedb");
 var spacebox = require("spacebox");
 var db = new NeDB({filename: p.join(__dirname, "hauler.db"), autoload: true});
 
+function sha256(str) {
+    return crypto.createHash("sha256").update(str).digest("hex");
+}
+
 function connect(config) {
     var message = "";
     var socket = net.connect({
-        host: "45.33.62.72",
-        // host: "localhost",
+        // host: "45.33.62.72",
+        host: "localhost",
         port: 9876
     }, function (err) {
         if (err) return console.error("net.connect:", err);
@@ -29,6 +34,7 @@ function connect(config) {
                 (function heartbeat(handle) {
                     db.find({handle: handle}, function (err, files) {
                         if (err) return console.error("db.find:", err);
+                        console.log("files:", files);
                         spacebox.synchronize(files, function (err, updates) {
                             if (err) {
                                 console.error("spacebox.synchronize:", err);
@@ -65,7 +71,10 @@ function connect(config) {
                 case "synchronize":
                     async.eachSeries(parsed.payload, function (file, nextFile) {
                         file.handle = parsed.handle;
-                        db.update({handle: parsed.handle, id: file.id}, file, {upsert: true}, nextFile);
+                        db.update({
+                            handle: parsed.handle,
+                            id: file.id
+                        }, file, {upsert: true}, nextFile);
                     }, function (err) {
                         if (err) return console.error(err);
                         spacebox.synchronize(parsed.payload, function (err, updates) {
@@ -84,13 +93,17 @@ function connect(config) {
                 case "upload":
                     spacebox.upload(parsed.path, parsed.options, function (err, files) {
                         if (err || !files) {
-                            return console.error("upload failed:", err, files);
+                            return console.error("spacebox.upload:", err, files);
                         }
                         if (files && files.constructor === Object && !files.path) {
                             files.path = parsed.path;
                             files.filepath = parsed.path;
                             files.ipfshash = files.hash;
-                            db.update({id: files.id}, files, {upsert: true}, function (err) {
+                            files.id = sha256(files.path);
+                            db.update({
+                                handle: parsed.handle,
+                                id: files.id
+                            }, files, {upsert: true}, function (err) {
                                 if (err) return console.error("upload.update:", err);
                                 socket.write(JSON.stringify({
                                     label: "uploaded",
@@ -103,7 +116,11 @@ function connect(config) {
                                 file.handle = parsed.handle;
                                 file.filepath = file.path;
                                 file.ipfshash = file.hash;
-                                db.update({id: file.id}, file, {upsert: true}, nextFile);
+                                file.id = sha256(file.path);
+                                db.update({
+                                    handle: parsed.handle,
+                                    id: file.id
+                                }, file, {upsert: true}, nextFile);
                             }, function (err) {
                                 if (err) return console.error(err);
                                 socket.write(JSON.stringify({
@@ -117,12 +134,27 @@ function connect(config) {
                     break;
                 case "remove":
                     spacebox.remove(parsed.path, parsed.hash, function (err, hash) {
-                        if (err) return console.error(err);
-                        socket.write({
-                            label: "removed",
-                            id: parsed.id,
-                            hash: hash,
-                            path: parsed.path
+                        if (err) {
+                            return socket.write(JSON.stringify({
+                                label: "remove-failed",
+                                handle: parsed.handle,
+                                payload: err.message || err
+                            }));
+                        }
+                        db.remove({
+                            handle: parsed.handle,
+                            id: parsed.id
+                        }, function (err) {
+                            if (err) return console.error("db.remove:", err);
+                            socket.write(JSON.stringify({
+                                label: "removed",
+                                handle: parsed.handle,
+                                payload: {
+                                    id: parsed.id,
+                                    ipfshash: hash,
+                                    filepath: parsed.path
+                                }
+                            }));
                         });
                     });
                     break;
